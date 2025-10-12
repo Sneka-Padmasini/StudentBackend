@@ -16,7 +16,8 @@ public class UserService {
 	@Autowired
 	private MongoClient mongoClient;
 
-	private final String dbName = "users";
+//	private final String dbName = "users";
+	private final String dbName = "studentUsers";
 	private final String collectionName = "studentUserDetail";
 
 	public boolean saveNewUser(UserDTO user) {
