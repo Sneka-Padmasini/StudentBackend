@@ -1,6 +1,8 @@
 package com.padmasiniAdmin.padmasiniAdmin_1.controller;
 
 import java.util.List;
+import java.util.ArrayList;
+
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -19,6 +21,8 @@ import com.padmasiniAdmin.padmasiniAdmin_1.repository.SubjectRepository;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
+
+import org.springframework.web.bind.annotation.RequestParam;
 
 
 	
@@ -92,4 +96,37 @@ public class SubjectController {
 		if(del==0)return ResponseEntity.badRequest().body("no such subject exist");
 		else return ResponseEntity.ok("subject and its data deleted successfully");
 	}
+	
+	@GetMapping("/getSubjectDetails")
+	public ResponseEntity<?> getSubjectDetails(
+	        @RequestParam String courseName,
+	        @RequestParam String subjectName,
+	        @RequestParam(required = false) String standard) {
+	    try {
+	        // Correct collection name: courseName + "." + subjectName
+	        String collectionName = courseName + "." + subjectName;
+	        System.out.println("📘 Fetching from MongoDB collection: " + collectionName);
+
+	        // Build query for standard if given
+	        org.springframework.data.mongodb.core.query.Query query = new org.springframework.data.mongodb.core.query.Query();
+
+	        if (standard != null && !standard.isEmpty()) {
+	            query.addCriteria(org.springframework.data.mongodb.core.query.Criteria.where("standard").is(standard));
+	        }
+
+	        // Fetch from the correct collection (e.g. professional.Physics)
+	        List<?> data = mongoTemplate.find(query, Object.class, collectionName);
+
+	        System.out.println("✅ Found " + data.size() + " records in " + collectionName);
+
+	        return ResponseEntity.ok(data);
+
+	    } catch (Exception e) {
+	        e.printStackTrace();
+	        return ResponseEntity.internalServerError().body("Error fetching subject data");
+	    }
+	}
+
+
+
 }
