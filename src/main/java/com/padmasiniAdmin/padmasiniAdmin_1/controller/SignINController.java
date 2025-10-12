@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.*;
 import com.padmasiniAdmin.padmasiniAdmin_1.model.UserDetails;
 import com.padmasiniAdmin.padmasiniAdmin_1.manageUser.UserModel;
 import com.padmasiniAdmin.padmasiniAdmin_1.service.SignInService;
+import com.padmasiniAdmin.padmasiniAdmin_1.service.EmailService;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -25,7 +26,10 @@ public class SignINController {
     @Autowired
     private SignInService signInService;
 
-    // ✅ LOGIN
+    @Autowired
+    private EmailService emailService;
+
+    // ================= LOGIN =================
     @PostMapping("/signIn")
     public ResponseEntity<?> signIn(@RequestBody UserDetails user, HttpSession session, HttpServletResponse response) {
         Map<String, Object> map = new HashMap<>();
@@ -37,9 +41,9 @@ public class SignINController {
         } else {
             map.put("status", "pass");
 
-            // Compose userName
-            String userName = (checkUser.getFirstname() != null ? checkUser.getFirstname() : "") + 
-                              " " + 
+            // ---------- User Basic Info ----------
+            String userName = (checkUser.getFirstname() != null ? checkUser.getFirstname() : "") +
+                              " " +
                               (checkUser.getLastname() != null ? checkUser.getLastname() : "");
             map.put("userName", userName.trim());
             map.put("firstName", checkUser.getFirstname());
@@ -48,67 +52,67 @@ public class SignINController {
             map.put("phoneNumber", checkUser.getMobile());
             map.put("role", checkUser.getRole() != null ? checkUser.getRole() : "student");
 
-            // Build courseName / coursetype from selectedCourse
+            // ---------- Courses ----------
             Map<String, List<String>> selectedCourses = checkUser.getSelectedCourse();
-            String courseName = "";
+            List<String> courseNames = new ArrayList<>();
             if (selectedCourses != null && !selectedCourses.isEmpty()) {
-                List<String> courseList = new ArrayList<>();
-                for (Map.Entry<String, List<String>> entry : selectedCourses.entrySet()) {
-                    String standardsStr = entry.getValue() != null ? String.join(",", entry.getValue()) : "";
-                    courseList.add(entry.getKey() + (standardsStr.isEmpty() ? "" : " (" + standardsStr + ")"));
-                }
-                courseName = String.join(", ", courseList);
+                courseNames.addAll(selectedCourses.keySet());
             }
-            map.put("courseName", courseName);
-            map.put("coursetype", courseName);
 
-            // ✅ Flatten standards
-            List<String> standards = new ArrayList<>();
+            String courseNameStr = String.join(", ", courseNames);
+            map.put("courseName", courseNameStr);
+            map.put("coursetype", courseNameStr);
+
+            // ---------- Standards ----------
+            Set<String> standardsSet = new HashSet<>();
             if (selectedCourses != null && !selectedCourses.isEmpty()) {
                 for (List<String> stdList : selectedCourses.values()) {
-                    if (stdList != null) standards.addAll(stdList);
+                    if (stdList != null) standardsSet.addAll(stdList);
                 }
             }
-            if (checkUser.getSelectedStandard() != null && !checkUser.getSelectedStandard().isEmpty()) {
-                standards.addAll(checkUser.getSelectedStandard());
-            }
-            // remove duplicates
-            Set<String> uniqueStandards = new HashSet<>(standards);
-            map.put("standards", new ArrayList<>(uniqueStandards));
-            session.setAttribute("standards", new ArrayList<>(uniqueStandards));
 
-            // ✅ Ensure subjects are not null
+            // Also include selectedStandard list directly (if present)
+            if (checkUser.getSelectedStandard() != null) {
+                standardsSet.addAll(checkUser.getSelectedStandard());
+            }
+
+            map.put("standards", new ArrayList<>(standardsSet));
+
+            // ---------- Subjects ----------
             List<String> subjects = checkUser.getSubjects() != null ? checkUser.getSubjects() : new ArrayList<>();
             map.put("subjects", subjects);
-            session.setAttribute("subjects", subjects);
 
-            // Other fields
+            // ---------- Other fields ----------
             map.put("photo", checkUser.getPhoto());
             map.put("dob", checkUser.getDob());
             map.put("gender", checkUser.getGender());
             map.put("isVerified", checkUser.getIsVerified());
 
-            // Save session info
+            // ---------- Save session info ----------
             session.setAttribute("user", userName.trim());
             session.setAttribute("email", checkUser.getEmail());
             session.setAttribute("phoneNumber", checkUser.getMobile());
             session.setAttribute("role", checkUser.getRole() != null ? checkUser.getRole() : "student");
-            session.setAttribute("courseName", courseName);
-            session.setAttribute("coursetype", courseName);
+            session.setAttribute("courseName", courseNameStr);
+            session.setAttribute("coursetype", courseNameStr);
+            session.setAttribute("standards", new ArrayList<>(standardsSet));
+            session.setAttribute("subjects", subjects);
 
-            // Cookie
+            // ---------- Cookie ----------
             Cookie cookie = new Cookie("email", checkUser.getEmail());
             cookie.setPath("/");
             cookie.setMaxAge(60 * 60);
             response.addCookie(cookie);
 
             System.out.println("✅ Logged in user: " + checkUser.getEmail());
+            System.out.println("✅ Courses: " + courseNameStr);
+            System.out.println("✅ Standards: " + standardsSet);
         }
 
         return ResponseEntity.ok(map);
     }
 
-    // ✅ LOGOUT
+    // ================= LOGOUT =================
     @GetMapping("/logout")
     public ResponseEntity<?> logout(HttpSession session, HttpServletResponse response) {
         Map<String, Object> map = new HashMap<>();
@@ -121,7 +125,7 @@ public class SignINController {
             cookie.setPath("/");
             response.addCookie(cookie);
 
-            map.put("message", "Logged out successfully"); 
+            map.put("message", "Logged out successfully");
         } else {
             map.put("message", "No active session");
         }
@@ -129,7 +133,7 @@ public class SignINController {
         return ResponseEntity.ok(map);
     }
 
-    // ✅ CHECK SESSION
+    // ================= CHECK SESSION =================
     @GetMapping("/checkSession")
     public ResponseEntity<?> checkSession(HttpSession session, HttpServletResponse response) {
         Map<String, Object> map = new HashMap<>();
@@ -160,5 +164,64 @@ public class SignINController {
         }
 
         return ResponseEntity.ok(map);
+    }
+
+    // ================= SEND OTP =================
+    @PostMapping("/auth/send-otp")
+    public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request, HttpSession session) {
+        String email = request.get("email");
+        if (email == null || email.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        }
+
+        int otp = (int)(Math.random() * 900000) + 100000;
+
+        // Save OTP and expiry
+        session.setAttribute("otp_" + email, otp);
+        session.setAttribute("otp_exp_" + email, System.currentTimeMillis() + 5 * 60 * 1000);
+
+        System.out.println("Generated OTP for " + email + ": " + otp);
+
+        try {
+            emailService.sendOtpEmail(email, otp);
+            System.out.println("✅ OTP email sent successfully to " + email);
+            return ResponseEntity.ok(Map.of("message", "OTP sent successfully"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("message", "Failed to send OTP email"));
+        }
+    }
+
+    // ================= VERIFY OTP =================
+    @PostMapping("/auth/verify-otp")
+    public ResponseEntity<?> verifyOtp(@RequestBody Map<String, String> request, HttpSession session) {
+        String email = request.get("email");
+        String otpStr = request.get("otp");
+
+        if (email == null || otpStr == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email and OTP are required"));
+        }
+
+        Object sessionOtp = session.getAttribute("otp_" + email);
+        Object expiryObj = session.getAttribute("otp_exp_" + email);
+
+        if (sessionOtp == null || expiryObj == null) {
+            return ResponseEntity.status(400).body(Map.of("message", "OTP not found or expired"));
+        }
+
+        long expiryTime = (long) expiryObj;
+        if (System.currentTimeMillis() > expiryTime) {
+            session.removeAttribute("otp_" + email);
+            session.removeAttribute("otp_exp_" + email);
+            return ResponseEntity.status(400).body(Map.of("message", "OTP expired"));
+        }
+
+        if (otpStr.equals(sessionOtp.toString())) {
+            session.removeAttribute("otp_" + email);
+            session.removeAttribute("otp_exp_" + email);
+            return ResponseEntity.ok(Map.of("message", "OTP verified successfully"));
+        } else {
+            return ResponseEntity.status(400).body(Map.of("message", "Invalid OTP"));
+        }
     }
 }
