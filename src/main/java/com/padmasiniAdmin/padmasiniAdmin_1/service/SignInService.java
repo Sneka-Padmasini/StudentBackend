@@ -52,7 +52,7 @@ public class SignInService {
             return null;
         }
 
-        // Manual mapping (important for nested objects)
+        // Manual mapping
         UserModel user = new UserModel();
         user.setFirstname(doc.getString("firstname"));
         user.setLastname(doc.getString("lastname"));
@@ -67,7 +67,20 @@ public class SignInService {
         user.setGender(doc.getString("gender"));
         user.setIsVerified(doc.getBoolean("isVerified", false));
 
-        // ✅ Convert selectedCourse safely
+//        // ✅ Map selectedCourse from MongoDB
+//        Object selectedCourseObj = doc.get("selectedCourse");
+//        if (selectedCourseObj instanceof Document) {
+//            Map<String, List<String>> selectedCourseMap = new HashMap<>();
+//            Document selectedCourseDoc = (Document) selectedCourseObj;
+//            for (String key : selectedCourseDoc.keySet()) {
+//                Object val = selectedCourseDoc.get(key);
+//                if (val instanceof List<?>) {
+//                    selectedCourseMap.put(key, (List<String>) val);
+//                }
+//            }
+//            user.setSelectedCourse(selectedCourseMap);
+//        }
+        
         Object selectedCourseObj = doc.get("selectedCourse");
         if (selectedCourseObj instanceof Document) {
             Map<String, List<String>> selectedCourseMap = new HashMap<>();
@@ -81,20 +94,34 @@ public class SignInService {
             user.setSelectedCourse(selectedCourseMap);
         }
 
-        // ✅ Convert selectedStandard safely
+
+        // ✅ Map selectedStandard
         Object selectedStandardObj = doc.get("selectedStandard");
         if (selectedStandardObj instanceof List<?>) {
             user.setSelectedStandard((List<String>) selectedStandardObj);
         }
 
+        // ✅ Flatten all standards across courses for frontend convenience
+        if (user.getSelectedCourse() != null) {
+            List<String> allStandards = user.getSelectedCourse().values().stream()
+                    .flatMap(List::stream)
+                    .distinct()
+                    .toList();
+            user.setStandards(allStandards); // frontend-friendly
+        } else if (user.getSelectedStandard() != null) {
+            user.setStandards(user.getSelectedStandard()); // fallback
+        }
+
         System.out.println("User found: " + user);
 
+        // Check password
         if (user.getPassword().equals(password)) {
             return user;
         }
 
         return null;
     }
+
 
     
     public void printAllUsers() {
