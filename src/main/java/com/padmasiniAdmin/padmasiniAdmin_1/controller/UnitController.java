@@ -14,6 +14,7 @@ import com.padmasiniAdmin.padmasiniAdmin_1.model.WrapperUnit;
 import com.padmasiniAdmin.padmasiniAdmin_1.model.WrapperUnitRequest;
 import com.padmasiniAdmin.padmasiniAdmin_1.service.UnitService;
 
+
 @RestController
 @RequestMapping("/api")
 public class UnitController {
@@ -21,16 +22,17 @@ public class UnitController {
     @Autowired
     private UnitService unitService;
 
-    // -----------------------------
-    // Get all units for a course/subject/standard
-    // -----------------------------
     @GetMapping("/getAllUnits/{dbname}/{subjectName}/{standard}")
-    public List<UnitRequest> getUnitsBySubject(@PathVariable String dbname,
-                                               @PathVariable String subjectName,
-                                               @PathVariable String standard) {
-        List<UnitRequest> units = unitService.getAllUnit(dbname, subjectName, standard);
-        return units != null ? units : new ArrayList<>();
+    public List<UnitRequest> getAllUnits(
+            @PathVariable String dbname,
+            @PathVariable String subjectName,
+            @PathVariable String standard) {
+
+        System.out.println("🎯 Fetching units for DB: " + dbname + ", Subject: " + subjectName + ", Standard: " + standard);
+        return unitService.getAllUnit(dbname, subjectName, standard);
     }
+
+
 
     // -----------------------------
     // Add new head unit
