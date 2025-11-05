@@ -14,17 +14,25 @@ public class PadmasiniAdmin1Application {
     }
 
     @Bean
-    public WebMvcConfigurer corsConfigurer() {   
-         return new WebMvcConfigurer() {
-            @Override	
+    public WebMvcConfigurer corsConfigurer() {
+        return new WebMvcConfigurer() {
+            @Override
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
-                    .allowedOrigins("https://studentfrontendpage.netlify.app/","http://localhost:5173","https://d2kr3vc90ue6me.cloudfront.net","https://trilokinnovations.com","https://www.trilokinnovations.com", "https://padmasini7-frontend.netlify.app", "http://localhost:5174","https://majestic-frangollo-031fed.netlify.app")
-                    .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
-                    .allowedHeaders("*")    
-                    .allowCredentials(true);
+                        .allowedOriginPatterns(
+                            "http://localhost:5173",
+                            "http://localhost:5174",
+                            "https://studentfrontendpage.netlify.app",
+                            "https://padmasini7-frontend.netlify.app",
+                            "https://d2kr3vc90ue6me.cloudfront.net",
+                            "https://trilokinnovations.com",
+                            "https://www.trilokinnovations.com",
+                            "https://majestic-frangollo-031fed.netlify.app"
+                        )
+                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedHeaders("*")
+                        .allowCredentials(true);
             }
         };
     }
 }
-   
