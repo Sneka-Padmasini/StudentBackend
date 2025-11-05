@@ -207,76 +207,8 @@ public class ProgressController {
           .body(Map.of("error", "Failed to delete progress: " + e.getMessage()));
       }
     }
+ 
 
-
-    
- // ProgressController.java (Inside the ProgressController class)
-
-//    @DeleteMapping("/{userId}")
-//    public ResponseEntity<?> deleteProgress(@PathVariable String userId) {
-//        try {
-//            // progressRepository.deleteAllByUserId is the correct method
-//            progressRepository.deleteAllByUserId(userId);
-//            System.out.println("🗑️ Deleted progress for user: " + userId);
-//            // Returning a clean 200 OK with a simple message
-//            return ResponseEntity.ok(Map.of("message", "Progress deleted successfully for " + userId));
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            // Important: Return a 500 status with a clean JSON body for the frontend to read.
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                    .body(Map.of("error", "Failed to delete progress on the server: " + e.getMessage()));
-//        }
-//    }
-    
-//    @DeleteMapping("/{userId}")
-//    public ResponseEntity<?> deleteProgress(
-//        @PathVariable String userId,
-//        @RequestParam(required = false) String course,
-//        @RequestParam(required = false) String standard) {
-//        
-//        try {
-//            Progress progress = progressRepository.findByUserId(userId);
-//            if (progress != null) {
-//                if (course != null && standard != null) {
-//                    // Delete only specific course and standard progress
-//                    String prefix = course + "_" + standard + "_";
-//                    
-//                    if (progress.getCompletedSubtopics() != null) {
-//                        Map<String, Object> newCompletedSubtopics = new HashMap<>();
-//                        progress.getCompletedSubtopics().forEach((key, value) -> {
-//                            if (!key.startsWith(prefix)) {
-//                                newCompletedSubtopics.put(key, value);
-//                            }
-//                        });
-//                        progress.setCompletedSubtopics(newCompletedSubtopics);
-//                    }
-//                    
-//                    if (progress.getSubjectCompletion() != null) {
-//                        Map<String, Integer> newSubjectCompletion = new HashMap<>();
-//                        progress.getSubjectCompletion().forEach((key, value) -> {
-//                            if (!key.startsWith(prefix)) {
-//                                newSubjectCompletion.put(key, value);
-//                            }
-//                        });
-//                        progress.setSubjectCompletion(newSubjectCompletion);
-//                    }
-//                    
-//                    progressRepository.save(progress);
-//                    System.out.println("🗑️ Deleted progress for user: " + userId + " course: " + course + " standard: " + standard);
-//                } else {
-//                    // Delete all progress (existing behavior)
-//                    progressRepository.deleteAllByUserId(userId);
-//                    System.out.println("🗑️ Deleted ALL progress for user: " + userId);
-//                }
-//            }
-//            
-//            return ResponseEntity.ok(Map.of("message", "Progress deleted successfully"));
-//        } catch (Exception e) {
-//            e.printStackTrace();
-//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-//                .body(Map.of("error", "Failed to delete progress on the server: " + e.getMessage()));
-//        }
-//    }
 
 
 }
