@@ -5,8 +5,16 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
+import org.springframework.data.annotation.Id;
+import org.springframework.data.mongodb.core.mapping.Document;
+
+@Document(collection = "studentUserDetail") // ✅ Link to your MongoDB collection
 public class UserModel implements Serializable {
 	private static final long serialVersionUID = 1L;
+
+	// ✅ MongoDB-generated ID
+	@Id
+	private String id;
 
 	// Core fields
 	private String firstname; // lowercase to match controller
@@ -31,6 +39,14 @@ public class UserModel implements Serializable {
 	private Boolean isVerified;
 
 	// ---------------- Getters and Setters ----------------
+	public String getId() {
+		return id;
+	}
+
+	public void setId(String id) {
+		this.id = id;
+	}
+
 	public String getFirstname() {
 		return firstname;
 	}
@@ -168,11 +184,10 @@ public class UserModel implements Serializable {
 
 	@Override
 	public String toString() {
-		return "UserModel [firstname=" + firstname + ", lastname=" + lastname + ", email=" + email + ", password="
-				+ password
-				+ ", mobile=" + mobile + ", role=" + role + ", coursetype=" + coursetype + ", courseName=" + courseName
-				+ ", standards=" + standards + ", subjects=" + subjects + ", selectedCourse=" + selectedCourse
-				+ ", selectedStandard=" + selectedStandard + ", photo=" + photo + ", dob=" + dob + ", gender=" + gender
-				+ ", isVerified=" + isVerified + "]";
+		return "UserModel [id=" + id + ", firstname=" + firstname + ", lastname=" + lastname + ", email=" + email
+				+ ", password=" + password + ", mobile=" + mobile + ", role=" + role + ", coursetype=" + coursetype
+				+ ", courseName=" + courseName + ", standards=" + standards + ", subjects=" + subjects
+				+ ", selectedCourse=" + selectedCourse + ", selectedStandard=" + selectedStandard + ", photo=" + photo
+				+ ", dob=" + dob + ", gender=" + gender + ", isVerified=" + isVerified + "]";
 	}
 }

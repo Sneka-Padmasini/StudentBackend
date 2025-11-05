@@ -40,6 +40,9 @@ public class SignINController {
             map.put("status", "failed");
         } else {
             map.put("status", "pass");
+            
+         // ✅ Add this line (Important)
+            map.put("userId", checkUser.getId());
 
             // ---------- User Basic Info ----------
             String userName = (checkUser.getFirstname() != null ? checkUser.getFirstname() : "") +
