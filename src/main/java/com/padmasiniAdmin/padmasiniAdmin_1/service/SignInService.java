@@ -23,22 +23,76 @@ public class SignInService {
     private final String dbName = "studentUsers";
     private final String collectionName = "studentUserDetail";
 
+
 //    public UserModel checkUserEmail(String email, String password) {
 //        MongoTemplate mongo = new MongoTemplate(mongoClient, dbName);
 //        Query query = new Query();
 //        query.addCriteria(Criteria.where("email").regex("^" + Pattern.quote(email) + "$", "i"));
 //
-//        UserModel user = mongo.findOne(query, UserModel.class, collectionName);
+//        Document doc = mongo.getCollection(collectionName).find(query.getQueryObject()).first();
 //
 //        System.out.println("Login attempt with email: " + email);
-//        if(user == null) System.out.println("No user found in DB");
-//        else System.out.println("User found: " + user);
+//        if (doc == null) {
+//            System.out.println("No user found in DB");
+//            return null;
+//        }
 //
-//        if(user != null && user.getPassword().equals(password)) return user;
+//        // Manual mapping
+//        UserModel user = new UserModel();
+//        user.setFirstname(doc.getString("firstname"));
+//        user.setLastname(doc.getString("lastname"));
+//        user.setEmail(doc.getString("email"));
+//        user.setPassword(doc.getString("password"));
+//        user.setMobile(doc.getString("mobile"));
+//        user.setRole(doc.getString("role"));
+//        user.setCoursetype(doc.getString("coursetype"));
+//        user.setCourseName(doc.getString("courseName"));
+//        user.setPhoto(doc.getString("photo"));
+//        user.setDob(doc.getString("dob"));
+//        user.setGender(doc.getString("gender"));
+//        user.setIsVerified(doc.getBoolean("isVerified", false));
+//
+//        
+//        Object selectedCourseObj = doc.get("selectedCourse");
+//        if (selectedCourseObj instanceof Document) {
+//            Map<String, List<String>> selectedCourseMap = new HashMap<>();
+//            Document selectedCourseDoc = (Document) selectedCourseObj;
+//            for (String key : selectedCourseDoc.keySet()) {
+//                Object val = selectedCourseDoc.get(key);
+//                if (val instanceof List<?>) {
+//                    selectedCourseMap.put(key, (List<String>) val);
+//                }
+//            }
+//            user.setSelectedCourse(selectedCourseMap);
+//        }
+//
+//
+//        // ✅ Map selectedStandard
+//        Object selectedStandardObj = doc.get("selectedStandard");
+//        if (selectedStandardObj instanceof List<?>) {
+//            user.setSelectedStandard((List<String>) selectedStandardObj);
+//        }
+//
+//        // ✅ Flatten all standards across courses for frontend convenience
+//        if (user.getSelectedCourse() != null) {
+//            List<String> allStandards = user.getSelectedCourse().values().stream()
+//                    .flatMap(List::stream)
+//                    .distinct()
+//                    .toList();
+//            user.setStandards(allStandards); // frontend-friendly
+//        } else if (user.getSelectedStandard() != null) {
+//            user.setStandards(user.getSelectedStandard()); // fallback
+//        }
+//
+//        System.out.println("User found: " + user);
+//
+//        // Check password
+//        if (user.getPassword().equals(password)) {
+//            return user;
+//        }
 //
 //        return null;
 //    }
-
     public UserModel checkUserEmail(String email, String password) {
         MongoTemplate mongo = new MongoTemplate(mongoClient, dbName);
         Query query = new Query();
@@ -52,8 +106,12 @@ public class SignInService {
             return null;
         }
 
+        // ✅ Add this line to include MongoDB ObjectId
+        String objectId = doc.getObjectId("_id").toHexString();
+
         // Manual mapping
         UserModel user = new UserModel();
+        user.setId(objectId); // ✅ <-- this is the missing link!
         user.setFirstname(doc.getString("firstname"));
         user.setLastname(doc.getString("lastname"));
         user.setEmail(doc.getString("email"));
@@ -67,20 +125,7 @@ public class SignInService {
         user.setGender(doc.getString("gender"));
         user.setIsVerified(doc.getBoolean("isVerified", false));
 
-//        // ✅ Map selectedCourse from MongoDB
-//        Object selectedCourseObj = doc.get("selectedCourse");
-//        if (selectedCourseObj instanceof Document) {
-//            Map<String, List<String>> selectedCourseMap = new HashMap<>();
-//            Document selectedCourseDoc = (Document) selectedCourseObj;
-//            for (String key : selectedCourseDoc.keySet()) {
-//                Object val = selectedCourseDoc.get(key);
-//                if (val instanceof List<?>) {
-//                    selectedCourseMap.put(key, (List<String>) val);
-//                }
-//            }
-//            user.setSelectedCourse(selectedCourseMap);
-//        }
-        
+        // ✅ Map selectedCourse
         Object selectedCourseObj = doc.get("selectedCourse");
         if (selectedCourseObj instanceof Document) {
             Map<String, List<String>> selectedCourseMap = new HashMap<>();
@@ -94,27 +139,25 @@ public class SignInService {
             user.setSelectedCourse(selectedCourseMap);
         }
 
-
         // ✅ Map selectedStandard
         Object selectedStandardObj = doc.get("selectedStandard");
         if (selectedStandardObj instanceof List<?>) {
             user.setSelectedStandard((List<String>) selectedStandardObj);
         }
 
-        // ✅ Flatten all standards across courses for frontend convenience
+        // ✅ Flatten all standards across courses
         if (user.getSelectedCourse() != null) {
             List<String> allStandards = user.getSelectedCourse().values().stream()
                     .flatMap(List::stream)
                     .distinct()
                     .toList();
-            user.setStandards(allStandards); // frontend-friendly
+            user.setStandards(allStandards);
         } else if (user.getSelectedStandard() != null) {
-            user.setStandards(user.getSelectedStandard()); // fallback
+            user.setStandards(user.getSelectedStandard());
         }
 
         System.out.println("User found: " + user);
 
-        // Check password
         if (user.getPassword().equals(password)) {
             return user;
         }
