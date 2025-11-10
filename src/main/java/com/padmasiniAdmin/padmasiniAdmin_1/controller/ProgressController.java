@@ -29,26 +29,52 @@ public class ProgressController {
 
     // ✅ Get progress by userId
     @GetMapping("/{userId}")
-    public ResponseEntity<?> getProgress(@PathVariable String userId) {
+    public ResponseEntity<?> getProgress(
+        @PathVariable String userId,
+        @RequestParam(required = false) String course,
+        @RequestParam(required = false) String standard
+    ) {
         try {
-            // ❌ OLD LINE: List<Progress> progressList = progressRepository.findByUserId(userId);
-            // ✅ NEW LINE:
-            Progress progress = progressRepository.findByUserId(userId); // Returns single item or null
+            Progress progress = progressRepository.findByUserId(userId);
 
-            // ❌ OLD LOGIC: if (progressList == null || progressList.isEmpty()) { ... }
-            // ✅ NEW LOGIC:
-            if (progress == null) { 
+            if (progress == null) {
                 return ResponseEntity.ok(Map.of(
                     "completedSubtopics", Map.of(),
                     "subjectCompletion", Map.of()
                 ));
             }
-            
-            // ❌ OLD LOGIC: (Return the latest entry from the list)
-            // Progress latest = progressList.get(progressList.size() - 1);
-            // return ResponseEntity.ok(latest);
 
-            // ✅ NEW LOGIC (Return the single result):
+            // If course and standard are provided, filter the maps
+            if (course != null && standard != null) {
+                String prefix = (course + "_" + standard + "_").toLowerCase();
+                
+                // Filter completedSubtopics
+                Map<String, Object> allTopics = progress.getCompletedSubtopics();
+                Map<String, Object> filteredTopics = new HashMap<>();
+                if (allTopics != null) {
+                    allTopics.entrySet().stream()
+                        .filter(entry -> entry.getKey().toLowerCase().startsWith(prefix))
+                        .forEach(entry -> filteredTopics.put(entry.getKey(), entry.getValue()));
+                }
+
+                // Filter subjectCompletion
+                Map<String, Integer> allSubjects = progress.getSubjectCompletion();
+                Map<String, Integer> filteredSubjects = new HashMap<>();
+                if (allSubjects != null) {
+                    allSubjects.entrySet().stream()
+                        .filter(entry -> entry.getKey().toLowerCase().startsWith(prefix))
+                        .forEach(entry -> filteredSubjects.put(entry.getKey(), entry.getValue()));
+                }
+
+                // Return a new object with only the filtered data
+                Progress filteredProgress = new Progress();
+                filteredProgress.setUserId(userId);
+                filteredProgress.setCompletedSubtopics(filteredTopics);
+                filteredProgress.setSubjectCompletion(filteredSubjects);
+                return ResponseEntity.ok(filteredProgress);
+            }
+            
+            // If no course/standard provided, return everything
             return ResponseEntity.ok(progress);
 
         } catch (Exception e) {
@@ -56,7 +82,6 @@ public class ProgressController {
                     .body("Error loading progress: " + e.getMessage());
         }
     }
-
 
     // ✅ Save or update progress
     
@@ -92,16 +117,23 @@ public class ProgressController {
                 Map<String, Object> existingTopics = progressToSave.getCompletedSubtopics();
                 Map<String, Object> incomingTopics = newProgress.getCompletedSubtopics();
 
+             // Define the prefix for the current save operation
+                String prefix = course + "_" + standard + "_";
+
                 for (Map.Entry<String, Object> topicEntry : incomingTopics.entrySet()) {
                     String rawKey = topicEntry.getKey();
 
                     // Skip metadata keys
                     if (rawKey.equalsIgnoreCase("course") || rawKey.equalsIgnoreCase("standard")) continue;
 
-                    // Add prefix if missing
-                    String topicKey = rawKey.startsWith(course + "_" + standard + "_")
-                            ? rawKey
-                            : course + "_" + standard + "_" + rawKey;
+                    // ✅ CRITICAL FIX:
+                    // If the key does NOT match the current course, skip it completely.
+                    if (!rawKey.toLowerCase().startsWith(prefix.toLowerCase())) {
+                        continue; // Do not process keys from other courses
+                    }
+                    
+                    // If we are here, the key is correct.
+                    String topicKey = rawKey; 
 
                     Object incomingSubtopicsObj = topicEntry.getValue();
 
@@ -129,12 +161,20 @@ public class ProgressController {
                 }
 
                 Map<String, Integer> existing = progressToSave.getSubjectCompletion();
+                // Use the same prefix as defined above
+                String subjectPrefix = course + "_" + standard + "_"; 
+
                 for (Map.Entry<String, Integer> entry : newProgress.getSubjectCompletion().entrySet()) {
                     String rawKey = entry.getKey();
-                    String prefixedKey = rawKey.startsWith(course + "_" + standard + "_")
-                            ? rawKey
-                            : course + "_" + standard + "_" + rawKey;
-                    existing.put(prefixedKey, entry.getValue());
+                    
+                    // ✅ CRITICAL FIX:
+                    // If the key does NOT match the current course, skip it.
+                    if (!rawKey.toLowerCase().startsWith(subjectPrefix.toLowerCase())) {
+                        continue;
+                    }
+
+                    // Key is correct, put it in
+                    existing.put(rawKey, entry.getValue());
                 }
             }
 
