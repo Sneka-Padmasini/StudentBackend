@@ -30,6 +30,13 @@ public class SignINController {
     @Autowired
     private EmailService emailService;
 
+
+    // ================= ROOT ENDPOINT =================
+@GetMapping("/")
+public String home() {
+    return "Padmasini Admin Backend is running! Server Time: " + new java.util.Date();
+}
+
     // ================= LOGIN =================
     @PostMapping("/signIn")
     public ResponseEntity<?> signIn(@RequestBody UserDetails user, HttpSession session, HttpServletResponse response) {
