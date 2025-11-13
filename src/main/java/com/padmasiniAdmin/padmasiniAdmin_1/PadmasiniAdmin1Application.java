@@ -21,6 +21,7 @@ public class PadmasiniAdmin1Application {
                 registry.addMapping("/**")
                         .allowedOriginPatterns(
                             "http://localhost:5173",
+                            "https://padmasini.com",
                             "http://localhost:5174",
                             "https://studentfrontendpage.netlify.app",
                             "https://padmasini7-frontend.netlify.app",
