@@ -20,6 +20,7 @@ public class PadmasiniAdmin1Application {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/**")
                         .allowedOriginPatterns(
+                            "https://d2i6kp2bub3ddu.cloudfront.net",
                             "http://localhost:5173",
                             "https://padmasini.com",
                             "http://localhost:5174",
@@ -29,6 +30,7 @@ public class PadmasiniAdmin1Application {
                             "https://trilokinnovations.com",
                             "https://www.trilokinnovations.com",
                             "https://majestic-frangollo-031fed.netlify.app"
+                            
                         )
                         .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
                         .allowedHeaders("*")
