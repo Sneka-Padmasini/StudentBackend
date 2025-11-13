@@ -21,7 +21,7 @@ import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
 @RestController
-    @RequestMapping("/api") 
+    @RequestMapping("/") 
 public class SignINController {
 
     @Autowired
