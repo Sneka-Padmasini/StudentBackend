@@ -15,6 +15,7 @@ import java.util.HashMap;
 @RequestMapping("/api/progress")
 @CrossOrigin(origins = {
         "http://localhost:5173",
+        "https://padmasini.com",
         "https://studentfrontendpage.netlify.app",
         "https://padmasini7-frontend.netlify.app",
         "https://majestic-frangollo-031fed.netlify.app",
