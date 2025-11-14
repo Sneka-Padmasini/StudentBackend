@@ -12,7 +12,7 @@ import java.util.HashMap;
 
 
 @RestController
-@RequestMapping("/api/progress")
+@RequestMapping("/progress")
 @CrossOrigin(origins = {
         "https://d2i6kp2bub3ddu.cloudfront.net",
         "http://localhost:5173",
