@@ -15,6 +15,8 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.RequestMapping;
+
 
 import com.padmasiniAdmin.padmasiniAdmin_1.model.Subject;
 import com.padmasiniAdmin.padmasiniAdmin_1.repository.SubjectRepository;
