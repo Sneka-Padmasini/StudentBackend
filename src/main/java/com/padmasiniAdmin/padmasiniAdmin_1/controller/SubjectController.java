@@ -27,6 +27,7 @@ import org.springframework.web.bind.annotation.RequestParam;
 
 	
 @RestController
+@RequestMapping("/api")
 public class SubjectController {
 	@Autowired
 	SubjectRepository repo;
