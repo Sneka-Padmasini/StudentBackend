@@ -21,6 +21,7 @@ public class PadmasiniAdmin1Application {
                 registry.addMapping("/**")
                         .allowedOriginPatterns(
                             "https://d2i6kp2bub3ddu.cloudfront.net",
+                            "https://padmasini.com/Learnforward/",
                             "http://localhost:5173",
                             "https://padmasini.com",
                             "http://localhost:5174",
