@@ -235,4 +235,103 @@ public String home() {
             return ResponseEntity.status(400).body(Map.of("message", "Invalid OTP"));
         }
     }
+    
+ // ================= FORGOT PASSWORD =================
+    @PostMapping("/auth/forgot-password")
+    public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request, HttpSession session) {
+
+        String email = request.get("email");
+
+        if (email == null || email.isEmpty()) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email is required"));
+        }
+
+        // Check if email exists
+        UserModel user = signInService.checkEmailExists(email);
+        if (user == null) {
+            return ResponseEntity.status(404).body(Map.of("message", "Email not found"));
+        }
+
+        // Generate OTP
+        int otp = (int) (Math.random() * 900000) + 100000;
+
+        // Store OTP temporarily
+        session.setAttribute("reset_otp_" + email, otp);
+        session.setAttribute("reset_otp_exp_" + email, System.currentTimeMillis() + 5 * 60 * 1000);
+
+        try {
+            // Send email
+            emailService.sendOtpEmail(email, otp);
+            return ResponseEntity.ok(Map.of("message", "Reset OTP sent to your email"));
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("message", "Failed to send reset email"));
+        }
+    }
+
+    @PostMapping("/auth/verify-reset-otp")
+    public ResponseEntity<?> verifyResetOtp(@RequestBody Map<String, String> request, HttpSession session) {
+
+        String email = request.get("email");
+        String otpStr = request.get("otp");
+
+        if (email == null || otpStr == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email and OTP are required"));
+        }
+
+        // Trim inputs to avoid whitespace errors
+        email = email.trim();
+        otpStr = otpStr.trim();
+
+        Object sessionOtp = session.getAttribute("reset_otp_" + email);
+        Object expiryObj = session.getAttribute("reset_otp_exp_" + email);
+
+        if (sessionOtp == null || expiryObj == null) {
+            return ResponseEntity.status(400).body(Map.of("message", "OTP not found or expired. Please request a new one."));
+        }
+
+        long expiryTime = (long) expiryObj;
+        if (System.currentTimeMillis() > expiryTime) {
+            session.removeAttribute("reset_otp_" + email);
+            session.removeAttribute("reset_otp_exp_" + email);
+            return ResponseEntity.status(400).body(Map.of("message", "OTP has expired"));
+        }
+
+        // Convert session OTP to String for comparison
+        if (otpStr.equals(sessionOtp.toString())) {
+            // OTP verified — allow password reset
+            session.setAttribute("reset_verified_" + email, true);
+            return ResponseEntity.ok(Map.of("message", "OTP verified successfully"));
+        } else {
+            return ResponseEntity.status(400).body(Map.of("message", "Invalid OTP entered"));
+        }
+    }
+
+    @PostMapping("/auth/reset-password")
+    public ResponseEntity<?> resetPassword(@RequestBody Map<String, String> request, HttpSession session) {
+
+        String email = request.get("email");
+        String newPassword = request.get("newPassword");
+
+        if (email == null || newPassword == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email and new password required"));
+        }
+
+        Boolean verified = (Boolean) session.getAttribute("reset_verified_" + email);
+        if (verified == null || !verified) {
+            return ResponseEntity.status(403).body(Map.of("message", "OTP not verified"));
+        }
+
+        // Update password using service
+        boolean updated = signInService.updatePassword(email, newPassword);
+
+        if (updated) {
+            session.removeAttribute("reset_verified_" + email);
+            return ResponseEntity.ok(Map.of("message", "Password reset successful"));
+        } else {
+            return ResponseEntity.status(500).body(Map.of("message", "Failed to update password"));
+        }
+    }
+
+    
 }
