@@ -37,27 +37,29 @@ public class UserController {
             @RequestParam("gender") String gender,
             @RequestParam("selectedCourses") String selectedCoursesJson,
             @RequestParam("selectedStandard") String selectedStandardJson,
-            @RequestParam(value = "photo", required = false) MultipartFile photo
+            @RequestParam(value = "photo", required = false) MultipartFile photo,
+            
+            // 🔥 ADD THESE 3 LINES 🔥
+            @RequestParam(value = "plan", required = false, defaultValue = "trial") String plan,
+            @RequestParam(value = "startDate", required = false) String startDate,
+            @RequestParam(value = "endDate", required = false) String endDate,
+            
+            @RequestParam(value = "paymentId", required = false) String paymentId,
+            @RequestParam(value = "paymentMethod", required = false) String paymentMethod,
+            @RequestParam(value = "amountPaid", required = false) String amountPaid
     ) {
         Map<String, String> map = new HashMap<>();
         ObjectMapper mapper = new ObjectMapper();
 
         try {
-            // Parse selectedCourses and selectedStandards
-            // Example frontend sends:
-            // selectedCourses = ["NEET","JEE"]
-            // selectedStandard = ["11th","12th"]
-
             List<String> selectedCourses = mapper.readValue(selectedCoursesJson, new TypeReference<List<String>>() {});
             List<String> selectedStandards = mapper.readValue(selectedStandardJson, new TypeReference<List<String>>() {});
 
-            // Create map linking each course to selected standards
             Map<String, List<String>> courseMap = new HashMap<>();
             for (String course : selectedCourses) {
                 courseMap.put(course, selectedStandards);
             }
 
-            // Create new user model
             UserModel user = new UserModel();
             user.setFirstname(firstname);
             user.setLastname(lastname);
@@ -66,14 +68,21 @@ public class UserController {
             user.setMobile(mobile);
             user.setDob(dob);
             user.setGender(gender);
-            user.setSelectedCourse(courseMap); // ✅ Save NEET/JEE properly
-            user.setSelectedStandard(selectedStandards); // ✅ Keep standards list
-
-         // ✅ Also set simple string versions for quick access
+            user.setSelectedCourse(courseMap); 
+            user.setSelectedStandard(selectedStandards);
             user.setCourseName(String.join(", ", selectedCourses));
             user.setCoursetype(String.join(", ", selectedCourses));
 
+            // 🔥 SAVE THE PLAN INFO 🔥
+            user.setPlan(plan);
+            user.setStartDate(startDate);
+            user.setEndDate(endDate);
             
+         // 🔥 SAVE THE PAYMENT DETAILS 🔥
+            user.setPaymentId(paymentId);
+            user.setPaymentMethod(paymentMethod);
+            user.setAmountPaid(amountPaid);
+
             if (photo != null && !photo.isEmpty()) {
                 user.setPhoto(photo.getOriginalFilename());
             }
