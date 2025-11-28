@@ -55,6 +55,12 @@ public class SignInService {
         user.setDob(doc.getString("dob"));
         user.setGender(doc.getString("gender"));
         user.setIsVerified(doc.getBoolean("isVerified", false));
+        user.setPlan(doc.getString("plan"));
+        user.setStartDate(doc.getString("startDate"));
+        user.setEndDate(doc.getString("endDate"));
+        user.setPaymentId(doc.getString("paymentId"));
+        user.setPaymentMethod(doc.getString("paymentMethod"));
+        user.setAmountPaid(doc.getString("amountPaid"));
 
         // ✅ Map selectedCourse
         Object selectedCourseObj = doc.get("selectedCourse");
