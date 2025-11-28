@@ -98,6 +98,9 @@ public String home() {
             map.put("dob", checkUser.getDob());
             map.put("gender", checkUser.getGender());
             map.put("isVerified", checkUser.getIsVerified());
+            map.put("plan", checkUser.getPlan());
+            map.put("startDate", checkUser.getStartDate());
+            map.put("endDate", checkUser.getEndDate());
 
             // ---------- Save session info ----------
             session.setAttribute("user", userName.trim());
