@@ -8,20 +8,19 @@ import java.util.Map;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-@Document(collection = "studentUserDetail") // ✅ Link to your MongoDB collection
+@Document(collection = "studentUserDetail") 
 public class UserModel implements Serializable {
 	private static final long serialVersionUID = 1L;
 
-	// ✅ MongoDB-generated ID
 	@Id
 	private String id;
 
 	// Core fields
-	private String firstname; // lowercase to match controller
+	private String firstname; 
 	private String lastname;
 	private String email;
 	private String password;
-	private String mobile; // matches getMobile() in controller
+	private String mobile; 
 	private String role;
 	private String coursetype;
 	private String courseName;
@@ -38,142 +37,86 @@ public class UserModel implements Serializable {
 	private String gender;
 	private Boolean isVerified;
 
+	// 🔥 NEW FIELDS FOR SUBSCRIPTION 🔥
+	private String plan;
+	private String startDate;
+	private String endDate;
+	
+	private String paymentId;      // e.g., "pay_N9s8d7f6g5h4j"
+    private String paymentMethod;  // e.g., "Razorpay" or "Free Trial"
+    private String amountPaid;     // e.g., "1000" or "0"
+
 	// ---------------- Getters and Setters ----------------
-	public String getId() {
-		return id;
-	}
+	public String getId() { return id; }
+	public void setId(String id) { this.id = id; }
 
-	public void setId(String id) {
-		this.id = id;
-	}
+	public String getFirstname() { return firstname; }
+	public void setFirstname(String firstname) { this.firstname = firstname; }
 
-	public String getFirstname() {
-		return firstname;
-	}
+	public String getLastname() { return lastname; }
+	public void setLastname(String lastname) { this.lastname = lastname; }
 
-	public void setFirstname(String firstname) {
-		this.firstname = firstname;
-	}
+	public String getEmail() { return email; }
+	public void setEmail(String email) { this.email = email; }
 
-	public String getLastname() {
-		return lastname;
-	}
+	public String getPassword() { return password; }
+	public void setPassword(String password) { this.password = password; }
 
-	public void setLastname(String lastname) {
-		this.lastname = lastname;
-	}
+	public String getMobile() { return mobile; }
+	public void setMobile(String mobile) { this.mobile = mobile; }
 
-	public String getEmail() {
-		return email;
-	}
+	public String getRole() { return role; }
+	public void setRole(String role) { this.role = role; }
 
-	public void setEmail(String email) {
-		this.email = email;
-	}
+	public String getCoursetype() { return coursetype; }
+	public void setCoursetype(String coursetype) { this.coursetype = coursetype; }
 
-	public String getPassword() {
-		return password;
-	}
+	public String getCourseName() { return courseName; }
+	public void setCourseName(String courseName) { this.courseName = courseName; }
 
-	public void setPassword(String password) {
-		this.password = password;
-	}
+	public List<String> getStandards() { return standards; }
+	public void setStandards(List<String> standards) { this.standards = standards; }
 
-	public String getMobile() {
-		return mobile;
-	}
+	public List<String> getSubjects() { return subjects; }
+	public void setSubjects(List<String> subjects) { this.subjects = subjects; }
 
-	public void setMobile(String mobile) {
-		this.mobile = mobile;
-	}
+	public Map<String, List<String>> getSelectedCourse() { return selectedCourse; }
+	public void setSelectedCourse(Map<String, List<String>> selectedCourse) { this.selectedCourse = selectedCourse; }
 
-	public String getRole() {
-		return role;
-	}
+	public List<String> getSelectedStandard() { return selectedStandard; }
+	public void setSelectedStandard(List<String> selectedStandard) { this.selectedStandard = selectedStandard; }
 
-	public void setRole(String role) {
-		this.role = role;
-	}
+	public String getPhoto() { return photo; }
+	public void setPhoto(String photo) { this.photo = photo; }
 
-	public String getCoursetype() {
-		return coursetype;
-	}
+	public String getDob() { return dob; }
+	public void setDob(String dob) { this.dob = dob; }
 
-	public void setCoursetype(String coursetype) {
-		this.coursetype = coursetype;
-	}
+	public String getGender() { return gender; }
+	public void setGender(String gender) { this.gender = gender; }
 
-	public String getCourseName() {
-		return courseName;
-	}
+	public Boolean getIsVerified() { return isVerified; }
+	public void setIsVerified(Boolean isVerified) { this.isVerified = isVerified; }
 
-	public void setCourseName(String courseName) {
-		this.courseName = courseName;
-	}
+	// 🔥 GETTERS AND SETTERS FOR NEW FIELDS 🔥
+	public String getPlan() { return plan; }
+	public void setPlan(String plan) { this.plan = plan; }
 
-	public List<String> getStandards() {
-		return standards;
-	}
+	public String getStartDate() { return startDate; }
+	public void setStartDate(String startDate) { this.startDate = startDate; }
 
-	public void setStandards(List<String> standards) {
-		this.standards = standards;
-	}
+	public String getEndDate() { return endDate; }
+	public void setEndDate(String endDate) { this.endDate = endDate; }
+	
+	// 🔥 ADD GETTERS AND SETTERS FOR NEW FIELDS 🔥
+    public String getPaymentId() { return paymentId; }
+    public void setPaymentId(String paymentId) { this.paymentId = paymentId; }
 
-	public List<String> getSubjects() {
-		return subjects;
-	}
+    public String getPaymentMethod() { return paymentMethod; }
+    public void setPaymentMethod(String paymentMethod) { this.paymentMethod = paymentMethod; }
 
-	public void setSubjects(List<String> subjects) {
-		this.subjects = subjects;
-	}
-
-	public Map<String, List<String>> getSelectedCourse() {
-		return selectedCourse;
-	}
-
-	public void setSelectedCourse(Map<String, List<String>> selectedCourse) {
-		this.selectedCourse = selectedCourse;
-	}
-
-	public List<String> getSelectedStandard() {
-		return selectedStandard;
-	}
-
-	public void setSelectedStandard(List<String> selectedStandard) {
-		this.selectedStandard = selectedStandard;
-	}
-
-	public String getPhoto() {
-		return photo;
-	}
-
-	public void setPhoto(String photo) {
-		this.photo = photo;
-	}
-
-	public String getDob() {
-		return dob;
-	}
-
-	public void setDob(String dob) {
-		this.dob = dob;
-	}
-
-	public String getGender() {
-		return gender;
-	}
-
-	public void setGender(String gender) {
-		this.gender = gender;
-	}
-
-	public Boolean getIsVerified() {
-		return isVerified;
-	}
-
-	public void setIsVerified(Boolean isVerified) {
-		this.isVerified = isVerified;
-	}
+    public String getAmountPaid() { return amountPaid; }
+    public void setAmountPaid(String amountPaid) { this.amountPaid = amountPaid; }
 
 	// Compatibility getter for frontend userName
 	public String getUserName() {
@@ -184,10 +127,6 @@ public class UserModel implements Serializable {
 
 	@Override
 	public String toString() {
-		return "UserModel [id=" + id + ", firstname=" + firstname + ", lastname=" + lastname + ", email=" + email
-				+ ", password=" + password + ", mobile=" + mobile + ", role=" + role + ", coursetype=" + coursetype
-				+ ", courseName=" + courseName + ", standards=" + standards + ", subjects=" + subjects
-				+ ", selectedCourse=" + selectedCourse + ", selectedStandard=" + selectedStandard + ", photo=" + photo
-				+ ", dob=" + dob + ", gender=" + gender + ", isVerified=" + isVerified + "]";
+		return "UserModel [id=" + id + ", firstname=" + firstname + ", email=" + email + ", plan=" + plan + ", endDate=" + endDate + "]";
 	}
 }
