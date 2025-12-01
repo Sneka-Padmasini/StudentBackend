@@ -152,5 +152,50 @@ public class SignInService {
             return false;
         }
     }
+    
+
+
+    public boolean upgradeUserPlan(String email, UserModel updatedData) {
+        try {
+            MongoTemplate mongo = new MongoTemplate(mongoClient, dbName);
+            
+            // 1. Find user by Email
+            Query query = new Query();
+            query.addCriteria(Criteria.where("email").is(email));
+
+            // 2. Prepare the Update object (Use $set to protect other data)
+            org.springframework.data.mongodb.core.query.Update update = new org.springframework.data.mongodb.core.query.Update();
+            
+            // Always update these on upgrade
+            update.set("plan", updatedData.getPlan());
+            update.set("startDate", updatedData.getStartDate());
+            update.set("endDate", updatedData.getEndDate());
+            update.set("paymentId", updatedData.getPaymentId());
+            update.set("paymentMethod", updatedData.getPaymentMethod());
+            update.set("amountPaid", updatedData.getAmountPaid());
+            
+            // Only update Courses/Standards if the user selected new ones
+            if (updatedData.getSelectedCourse() != null && !updatedData.getSelectedCourse().isEmpty()) {
+                update.set("selectedCourse", updatedData.getSelectedCourse());
+                update.set("courseName", updatedData.getCourseName()); // Update the string version too
+                update.set("coursetype", updatedData.getCoursetype());
+            }
+            
+            if (updatedData.getSelectedStandard() != null && !updatedData.getSelectedStandard().isEmpty()) {
+                update.set("selectedStandard", updatedData.getSelectedStandard());
+                update.set("standards", updatedData.getStandards());
+            }
+
+            // 3. Execute Update
+            mongo.getCollection(collectionName).updateOne(query.getQueryObject(), update.getUpdateObject());
+            
+            System.out.println("✅ User plan upgraded for: " + email);
+            return true;
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
 
 }
