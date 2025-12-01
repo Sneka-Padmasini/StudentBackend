@@ -113,12 +113,24 @@ public class UserController {
         return userService.getUsers();
     }
 
-    @PutMapping("/updateUser/{email}")
-    public ResponseEntity<?> updateUser(@RequestBody UserDTO user, @PathVariable("email") String email) {
-        userService.deleteUser(email);
-        userService.saveNewUser(user);
-        map.put("status", "pass");
-        return ResponseEntity.ok(map);
+
+
+    @PutMapping("/upgradePlan/{email}")
+    public ResponseEntity<?> upgradePlan(@RequestBody UserModel user, @PathVariable("email") String email) {
+        Map<String, String> map = new HashMap<>();
+        
+        // Call the service method we just created
+        boolean updated = signInService.upgradeUserPlan(email, user);
+
+        if (updated) {
+            map.put("status", "pass");
+            map.put("message", "Plan upgraded successfully");
+            return ResponseEntity.ok(map);
+        } else {
+            map.put("status", "failed");
+            map.put("message", "Failed to upgrade plan");
+            return ResponseEntity.status(500).body(map);
+        }
     }
 
     @DeleteMapping("/deleteUser/{email}")
