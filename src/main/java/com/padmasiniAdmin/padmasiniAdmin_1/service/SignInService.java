@@ -61,6 +61,8 @@ public class SignInService {
         user.setPaymentId(doc.getString("paymentId"));
         user.setPaymentMethod(doc.getString("paymentMethod"));
         user.setAmountPaid(doc.getString("amountPaid"));
+        
+        user.setPayerId(doc.getString("payerId"));
 
         // ✅ Map selectedCourse
         Object selectedCourseObj = doc.get("selectedCourse");
@@ -173,6 +175,8 @@ public class SignInService {
             update.set("paymentId", updatedData.getPaymentId());
             update.set("paymentMethod", updatedData.getPaymentMethod());
             update.set("amountPaid", updatedData.getAmountPaid());
+            
+            update.set("payerId", updatedData.getPayerId());
             
             // Only update Courses/Standards if the user selected new ones
             if (updatedData.getSelectedCourse() != null && !updatedData.getSelectedCourse().isEmpty()) {
