@@ -104,6 +104,7 @@ public String home() {
 
             // ---------- Save session info ----------
             session.setAttribute("user", userName.trim());
+            session.setAttribute("userId", checkUser.getId());
             session.setAttribute("email", checkUser.getEmail());
             session.setAttribute("phoneNumber", checkUser.getMobile());
             session.setAttribute("role", checkUser.getRole() != null ? checkUser.getRole() : "student");
@@ -111,6 +112,14 @@ public String home() {
             session.setAttribute("coursetype", courseNameStr);
             session.setAttribute("standards", new ArrayList<>(standardsSet));
             session.setAttribute("subjects", subjects);
+            
+            session.setAttribute("gender", checkUser.getGender());
+            session.setAttribute("isVerified", checkUser.getIsVerified());
+            session.setAttribute("plan", checkUser.getPlan());
+            session.setAttribute("startDate", checkUser.getStartDate());
+            session.setAttribute("endDate", checkUser.getEndDate());
+            session.setAttribute("paymentId", checkUser.getPaymentId());
+            session.setAttribute("payerId", checkUser.getPayerId());
 
             // ---------- Cookie ----------
             Cookie cookie = new Cookie("email", checkUser.getEmail());
@@ -165,6 +174,8 @@ public String home() {
             map.put("status", "failed");
         } else {
             map.put("status", "pass");
+            map.put("userId", session.getAttribute("userId"));
+            map.put("_id", session.getAttribute("userId"));
             map.put("userName", session.getAttribute("user"));
             map.put("email", session.getAttribute("email"));
             map.put("phoneNumber", session.getAttribute("phoneNumber"));
@@ -173,6 +184,12 @@ public String home() {
             map.put("courseName", session.getAttribute("courseName"));
             map.put("subjects", session.getAttribute("subjects"));
             map.put("standards", session.getAttribute("standards"));
+            
+            map.put("plan", session.getAttribute("plan"));
+            map.put("startDate", session.getAttribute("startDate"));
+            map.put("endDate", session.getAttribute("endDate"));
+            map.put("paymentId", session.getAttribute("paymentId"));
+            map.put("payerId", session.getAttribute("payerId"));
 
             System.out.println("✅ Active session for: " + session.getAttribute("email"));
         }
