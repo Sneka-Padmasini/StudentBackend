@@ -46,7 +46,8 @@ public class UserController {
             
             @RequestParam(value = "paymentId", required = false) String paymentId,
             @RequestParam(value = "paymentMethod", required = false) String paymentMethod,
-            @RequestParam(value = "amountPaid", required = false) String amountPaid
+            @RequestParam(value = "amountPaid", required = false) String amountPaid,
+            @RequestParam(value = "payerId", required = false) String payerId
     ) {
         Map<String, String> map = new HashMap<>();
         ObjectMapper mapper = new ObjectMapper();
@@ -82,6 +83,8 @@ public class UserController {
             user.setPaymentId(paymentId);
             user.setPaymentMethod(paymentMethod);
             user.setAmountPaid(amountPaid);
+            
+            user.setPayerId(payerId);
 
             if (photo != null && !photo.isEmpty()) {
                 user.setPhoto(photo.getOriginalFilename());
