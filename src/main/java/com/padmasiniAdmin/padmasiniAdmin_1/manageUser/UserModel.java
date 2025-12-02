@@ -45,6 +45,8 @@ public class UserModel implements Serializable {
 	private String paymentId;      // e.g., "pay_N9s8d7f6g5h4j"
     private String paymentMethod;  // e.g., "Razorpay" or "Free Trial"
     private String amountPaid;     // e.g., "1000" or "0"
+    
+    private String payerId; // Stores UPI ID or Payer Email
 
 	// ---------------- Getters and Setters ----------------
 	public String getId() { return id; }
@@ -117,6 +119,9 @@ public class UserModel implements Serializable {
 
     public String getAmountPaid() { return amountPaid; }
     public void setAmountPaid(String amountPaid) { this.amountPaid = amountPaid; }
+    
+    public String getPayerId() { return payerId; }
+    public void setPayerId(String payerId) { this.payerId = payerId; }
 
 	// Compatibility getter for frontend userName
 	public String getUserName() {
