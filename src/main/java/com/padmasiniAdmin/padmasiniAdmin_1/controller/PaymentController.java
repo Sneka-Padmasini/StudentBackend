@@ -1,5 +1,6 @@
 package com.padmasiniAdmin.padmasiniAdmin_1.controller;
 
+import com.razorpay.Payment;
 import com.razorpay.Order;
 import com.razorpay.RazorpayClient;
 import com.razorpay.Utils;
@@ -60,8 +61,8 @@ public class PaymentController {
         
         String secret = razorpayKeySecret;
         
+        
         try {
-            // 🔥 FIX 2: Using the JSONObject overload of verifyPaymentSignature for stability
             JSONObject options = new JSONObject();
             options.put("razorpay_order_id", orderId);
             options.put("razorpay_payment_id", paymentId);
@@ -70,14 +71,31 @@ public class PaymentController {
             boolean isVerified = Utils.verifyPaymentSignature(options, secret);
 
             if (isVerified) {
-                // SUCCESS: Payment is genuine.
-                // TODO: FINALIZATION LOGIC 
-                System.out.println("Payment verified successfully for User: " + verificationRequest.getUserId());
-                return ResponseEntity.ok("Payment verified and subscription activated.");
+                // ✅ FETCH PAYMENT DETAILS FROM RAZORPAY TO GET UPI ID
+                RazorpayClient razorpay = new RazorpayClient(razorpayKeyId, razorpayKeySecret);
+                Payment payment = razorpay.payments.fetch(paymentId);
+                
+                String payerInfo = "";
+                
+                // Try to get VPA (UPI ID)
+                if (payment.has("vpa")) {
+                    payerInfo = payment.get("vpa").toString();
+                } 
+                // If not UPI, try email or contact
+                else if (payment.has("email")) {
+                    payerInfo = payment.get("email").toString();
+                }
+
+                System.out.println("Payment verified. Payer: " + payerInfo);
+                
+                // ✅ RETURN THE PAYER INFO TO FRONTEND
+                JSONObject response = new JSONObject();
+                response.put("message", "Payment verified");
+                response.put("payerId", payerInfo); // Send back UPI ID
+                
+                return ResponseEntity.ok(response.toString());
             } else {
-                // FAILED: Security alert.
-                System.err.println("Payment verification FAILED for Order ID: " + orderId);
-                return ResponseEntity.badRequest().body("Payment verification failed. Signature mismatch.");
+                return ResponseEntity.badRequest().body("Signature mismatch.");
             }
         } catch (Exception e) {
             e.printStackTrace();
