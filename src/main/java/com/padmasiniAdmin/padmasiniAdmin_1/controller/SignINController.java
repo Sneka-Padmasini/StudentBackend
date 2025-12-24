@@ -6,15 +6,26 @@ import java.util.List;
 import java.util.Map;
 import java.util.HashSet;
 import java.util.Set;
+import java.time.LocalDateTime; 
+import java.time.Duration;
+import java.time.LocalTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+// ✅ Models
 import com.padmasiniAdmin.padmasiniAdmin_1.model.UserDetails;
 import com.padmasiniAdmin.padmasiniAdmin_1.manageUser.UserModel;
+import com.padmasiniAdmin.padmasiniAdmin_1.model.StudySession;
+
+// ✅ Services
 import com.padmasiniAdmin.padmasiniAdmin_1.service.SignInService;
 import com.padmasiniAdmin.padmasiniAdmin_1.service.EmailService;
+import com.padmasiniAdmin.padmasiniAdmin_1.service.StudyTrackerService;
+
+// ✅ Repositories
+import com.padmasiniAdmin.padmasiniAdmin_1.repository.StudySessionRepository;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
@@ -29,19 +40,27 @@ public class SignINController {
 
     @Autowired
     private EmailService emailService;
+    
+    @Autowired 
+    private StudySessionRepository sessionRepo;
+    
+    @Autowired 
+    private StudyTrackerService trackerService;
 
 
     // ================= ROOT ENDPOINT =================
-@GetMapping("/")
-public String home() {
-    return "Padmasini Admin Backend is running! Server Time: " + new java.util.Date();
-}
+    @GetMapping("/")
+    public String home() {
+        return "Padmasini Admin Backend is running! Server Time: " + new java.util.Date();
+    }
 
     // ================= LOGIN =================
+ // ================= LOGIN =================
     @PostMapping("/signIn")
     public ResponseEntity<?> signIn(@RequestBody UserDetails user, HttpSession session, HttpServletResponse response) {
         Map<String, Object> map = new HashMap<>();
 
+        // 1. Check User Credentials via Service
         UserModel checkUser = signInService.checkUserEmail(user.getUserName(), user.getPassword());
 
         if (checkUser == null) {
@@ -49,10 +68,51 @@ public String home() {
         } else {
             map.put("status", "pass");
             
-         // ✅ Add this line (Important)
+            // ✅ Add User ID
             map.put("userId", checkUser.getId());
+            
+            // ✅ IMPROVED STUDY SESSION LOGIC (Consolidated)
+            try {
+                LocalDateTime now = LocalDateTime.now();
+                LocalDateTime startOfDay = now.toLocalDate().atStartOfDay();
+                LocalDateTime endOfDay = now.toLocalDate().atTime(LocalTime.MAX);
+                
+                // Fetch today's sessions for this user
+                List<StudySession> existingSessions = sessionRepo.findByUserIdAndLoginTimeBetween(
+                    checkUser.getId(), startOfDay, endOfDay);
+                
+                StudySession currentSession = null;
+                
+                // Check if there is an OPEN session (logoutTime is null)
+                for (StudySession s : existingSessions) {
+                    if (s.getLogoutTime() == null) {
+                        currentSession = s;
+                        break;
+                    }
+                }
+                
+                // If no open session found, check if we can resume the latest closed session (Optional, but cleaner)
+                // For now, let's stick to your requirement: Resuming only if open, otherwise create new.
+                
+                if (currentSession == null) {
+                    // Create new session
+                    currentSession = new StudySession(checkUser.getId(), now);
+                } else {
+                    // Resume existing open session (update login time to now is optional, usually we keep original start time)
+                    // But to be safe, let's ensure we have the ID reference.
+                }
+                
+                StudySession savedSession = sessionRepo.save(currentSession);
+                
+                // Send Session ID to frontend so we can close it later on logout
+                map.put("sessionId", savedSession.getId()); 
+                session.setAttribute("currentSessionId", savedSession.getId());
+                
+            } catch (Exception e) {
+                System.out.println("⚠️ Warning: Could not save study session: " + e.getMessage());
+            }
 
-            // ---------- User Basic Info ----------
+            // ---------- User Basic Info (Your Original Logic) ----------
             String userName = (checkUser.getFirstname() != null ? checkUser.getFirstname() : "") +
                               " " +
                               (checkUser.getLastname() != null ? checkUser.getLastname() : "");
@@ -127,43 +187,78 @@ public String home() {
             cookie.setMaxAge(60 * 60);
             response.addCookie(cookie);
 
-            System.out.println("✅ Logged in user: " + checkUser.getEmail());
-            System.out.println("✅ Courses: " + courseNameStr);
-            System.out.println("✅ Standards: " + standardsSet);
+            System.out.println("✅ Logged in user: " + checkUser.getEmail() + " | Session ID: " + map.get("sessionId"));
         }
 
         return ResponseEntity.ok(map);
     }
 
     // ================= LOGOUT =================
-    @GetMapping("/logout")
-    public ResponseEntity<?> logout(HttpSession session, HttpServletResponse response) {
-        Map<String, Object> map = new HashMap<>();
+    @PostMapping("/logout") 
+    public ResponseEntity<?> logout(@RequestBody(required=false) Map<String, String> request, HttpSession session, HttpServletResponse response) {
+        
+        // 1. Get Session ID from React (body) or internal Session
+        String sessionId = (request != null) ? request.get("sessionId") : (String) session.getAttribute("currentSessionId");
 
-        if (session.getAttribute("user") != null) {
-            session.invalidate();
+        System.out.println("🛑 Logout Requested for Session ID: " + sessionId); 
 
-            Cookie cookie = new Cookie("email", null);
-            cookie.setMaxAge(0);
-            cookie.setPath("/");
-            response.addCookie(cookie);
-
-            map.put("message", "Logged out successfully");
+        if (sessionId != null) {
+            StudySession dbSession = sessionRepo.findById(sessionId).orElse(null);
+            
+            if (dbSession != null) {
+                // Only update if it hasn't been closed yet
+                if (dbSession.getLogoutTime() == null) {
+                    dbSession.setLogoutTime(LocalDateTime.now());
+                    
+                    // ✅ FIXED TIME CALCULATION (Prevents 0 minutes)
+                    long seconds = Duration.between(dbSession.getLoginTime(), dbSession.getLogoutTime()).getSeconds();
+                    
+                    long minutes = seconds / 60;
+                    
+                    // If studied less than 60s but more than 5s, round up to 1 min so it counts.
+                    if (minutes == 0 && seconds > 0) {
+                        minutes = 1; 
+                    }
+                    
+                    dbSession.setDurationInMinutes(minutes);
+                    sessionRepo.save(dbSession);
+                    System.out.println("✅ Study Session Ended. Duration: " + minutes + " mins (Seconds: " + seconds + ")");
+                } else {
+                    System.out.println("⚠️ Session was already closed previously.");
+                }
+            } else {
+                System.out.println("❌ Error: Session ID found in request but NOT in Database.");
+            }
         } else {
-            map.put("message", "No active session");
+            System.out.println("❌ Error: No Session ID provided in logout request.");
         }
 
-        return ResponseEntity.ok(map);
+        // 3. Clear Session
+        session.invalidate();
+        Cookie cookie = new Cookie("email", null);
+        cookie.setMaxAge(0);
+        cookie.setPath("/");
+        response.addCookie(cookie);
+
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
     }
 
+    // ================= CALCULATE PLAN (New Feature) =================
+    @PostMapping("/calculate-plan")
+    public ResponseEntity<?> calculatePlan(@RequestBody Map<String, Integer> request) {
+        // Default to 3 hours if input is null
+        Integer hours = request.get("hours");
+        if(hours == null) hours = 3; 
+        
+        return ResponseEntity.ok(trackerService.calculateStudyPlan(hours));
+    }
+    
     // ================= CHECK SESSION =================
     @GetMapping("/checkSession")
     public ResponseEntity<?> checkSession(HttpSession session, HttpServletResponse response) {
         Map<String, Object> map = new HashMap<>();
-        System.out.println("🧩 Checking session: " + session.getId());
 
         if (session.getAttribute("user") == null) {
-            System.out.println("⚠️ Session expired or user not logged in.");
             session.invalidate();
 
             Cookie cookie = new Cookie("email", null);
@@ -190,8 +285,6 @@ public String home() {
             map.put("endDate", session.getAttribute("endDate"));
             map.put("paymentId", session.getAttribute("paymentId"));
             map.put("payerId", session.getAttribute("payerId"));
-
-            System.out.println("✅ Active session for: " + session.getAttribute("email"));
         }
 
         return ResponseEntity.ok(map);
@@ -215,7 +308,6 @@ public String home() {
 
         try {
             emailService.sendOtpEmail(email, otp);
-            System.out.println("✅ OTP email sent successfully to " + email);
             return ResponseEntity.ok(Map.of("message", "OTP sent successfully"));
         } catch (Exception e) {
             e.printStackTrace();
@@ -256,7 +348,7 @@ public String home() {
         }
     }
     
- // ================= FORGOT PASSWORD =================
+    // ================= FORGOT PASSWORD =================
     @PostMapping("/auth/forgot-password")
     public ResponseEntity<?> forgotPassword(@RequestBody Map<String, String> request, HttpSession session) {
 
@@ -352,6 +444,4 @@ public String home() {
             return ResponseEntity.status(500).body(Map.of("message", "Failed to update password"));
         }
     }
-
-    
 }
