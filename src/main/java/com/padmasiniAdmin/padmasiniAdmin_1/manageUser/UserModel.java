@@ -47,6 +47,8 @@ public class UserModel implements Serializable {
     private String amountPaid;     // e.g., "1000" or "0"
     
     private String payerId; // Stores UPI ID or Payer Email
+    
+    private int comfortableDailyHours;
 
 	// ---------------- Getters and Setters ----------------
 	public String getId() { return id; }
@@ -122,6 +124,9 @@ public class UserModel implements Serializable {
     
     public String getPayerId() { return payerId; }
     public void setPayerId(String payerId) { this.payerId = payerId; }
+    
+    public int getComfortableDailyHours() { return comfortableDailyHours; }
+    public void setComfortableDailyHours(int comfortableDailyHours) { this.comfortableDailyHours = comfortableDailyHours; }
 
 	// Compatibility getter for frontend userName
 	public String getUserName() {
