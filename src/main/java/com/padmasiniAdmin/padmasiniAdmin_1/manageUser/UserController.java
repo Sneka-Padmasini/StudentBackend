@@ -47,7 +47,8 @@ public class UserController {
             @RequestParam(value = "paymentId", required = false) String paymentId,
             @RequestParam(value = "paymentMethod", required = false) String paymentMethod,
             @RequestParam(value = "amountPaid", required = false) String amountPaid,
-            @RequestParam(value = "payerId", required = false) String payerId
+            @RequestParam(value = "payerId", required = false) String payerId,
+            @RequestParam(value = "comfortableDailyHours", required = false, defaultValue = "3") String comfortableDailyHoursStr
     ) {
         Map<String, String> map = new HashMap<>();
         ObjectMapper mapper = new ObjectMapper();
@@ -86,6 +87,15 @@ public class UserController {
             
             user.setPayerId(payerId);
 
+            try {
+                int hours = Integer.parseInt(comfortableDailyHoursStr);
+                // Safety check: ensure at least 1 hour
+                if (hours <= 0) hours = 3;
+                user.setComfortableDailyHours(hours);
+            } catch (NumberFormatException e) {
+                user.setComfortableDailyHours(3); // Default if parsing fails
+            }
+
             if (photo != null && !photo.isEmpty()) {
                 user.setPhoto(photo.getOriginalFilename());
             }
@@ -105,7 +115,7 @@ public class UserController {
         } catch (Exception e) {
             e.printStackTrace();
             map.put("status", "failed");
-            map.put("message", "Error processing request");
+            map.put("message", "Error processing request: " + e.getMessage());
         }
 
         return ResponseEntity.ok(map);
