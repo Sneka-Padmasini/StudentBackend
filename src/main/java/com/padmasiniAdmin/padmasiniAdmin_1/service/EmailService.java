@@ -9,20 +9,29 @@ import org.springframework.stereotype.Service;
 public class EmailService {
 
     @Autowired
-    private JavaMailSender mailSender;
+    private JavaMailSender javaMailSender;
 
-    /**
-     * Send a simple OTP email to the recipient.
-     * @param to recipient email
-     * @param otp the numeric otp
-     */
+    // --- YOUR EXISTING OTP METHOD (Keep this) ---
     public void sendOtpEmail(String to, int otp) {
         SimpleMailMessage message = new SimpleMailMessage();
         message.setTo(to);
-        message.setSubject("Your Padmasini OTP Code");
-        message.setText("Your OTP code is: " + otp + "\n\nThis code is valid for 5 minutes.\n\nIf you didn't request this, ignore this email.");
-        // Optionally setFrom if you want a custom sender:
-        // message.setFrom("noreply@padmasini.com");
-        mailSender.send(message);
+        message.setSubject("Your OTP Code");
+        message.setText("Your OTP for verification is: " + otp);
+        javaMailSender.send(message);
+    }
+
+    // --- ✅ ADD THIS NEW METHOD FOR STUDY TRACKER ---
+    public void sendSimpleMessage(String to, String subject, String text) {
+        try {
+            SimpleMailMessage message = new SimpleMailMessage();
+            message.setTo(to);
+            message.setSubject(subject);
+            message.setText(text);
+            javaMailSender.send(message);
+            System.out.println("✅ Email sent successfully to: " + to);
+        } catch (Exception e) {
+            System.err.println("❌ Failed to send email: " + e.getMessage());
+            e.printStackTrace();
+        }
     }
 }
