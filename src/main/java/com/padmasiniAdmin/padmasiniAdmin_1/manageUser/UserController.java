@@ -3,6 +3,7 @@ package com.padmasiniAdmin.padmasiniAdmin_1.manageUser;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.ArrayList;
 
 import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -47,8 +48,7 @@ public class UserController {
             @RequestParam(value = "paymentId", required = false) String paymentId,
             @RequestParam(value = "paymentMethod", required = false) String paymentMethod,
             @RequestParam(value = "amountPaid", required = false) String amountPaid,
-            @RequestParam(value = "payerId", required = false) String payerId,
-            @RequestParam(value = "comfortableDailyHours", required = false, defaultValue = "3") String comfortableDailyHoursStr
+            @RequestParam(value = "payerId", required = false) String payerId
     ) {
         Map<String, String> map = new HashMap<>();
         ObjectMapper mapper = new ObjectMapper();
@@ -86,15 +86,23 @@ public class UserController {
             user.setAmountPaid(amountPaid);
             
             user.setPayerId(payerId);
+            
+            user.setComfortableDailyHours(0);
+            
+            
+            List<Map<String, String>> paymentHistory = new ArrayList<>();
+            Map<String, String> initialTransaction = new HashMap<>();
 
-            try {
-                int hours = Integer.parseInt(comfortableDailyHoursStr);
-                // Safety check: ensure at least 1 hour
-                if (hours <= 0) hours = 3;
-                user.setComfortableDailyHours(hours);
-            } catch (NumberFormatException e) {
-                user.setComfortableDailyHours(3); // Default if parsing fails
-            }
+            initialTransaction.put("paymentId", paymentId != null ? paymentId : "TRIAL/MANUAL");
+            initialTransaction.put("amountPaid", amountPaid != null ? amountPaid : "0");
+            initialTransaction.put("plan", plan != null ? plan : "trial");
+            initialTransaction.put("date", java.time.LocalDate.now().toString());
+            initialTransaction.put("paymentMethod", paymentMethod != null ? paymentMethod : "Unknown");
+            initialTransaction.put("action", "REGISTRATION"); // Tag as the first payment
+
+            paymentHistory.add(initialTransaction);
+            user.setPaymentHistory(paymentHistory);
+
 
             if (photo != null && !photo.isEmpty()) {
                 user.setPhoto(photo.getOriginalFilename());
