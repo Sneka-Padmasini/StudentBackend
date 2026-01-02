@@ -49,6 +49,10 @@ public class UserModel implements Serializable {
     private String payerId; // Stores UPI ID or Payer Email
     
     private int comfortableDailyHours;
+    
+    private String severity;
+    
+    private List<Map<String, String>> paymentHistory;
 
 	// ---------------- Getters and Setters ----------------
 	public String getId() { return id; }
@@ -128,11 +132,27 @@ public class UserModel implements Serializable {
     public int getComfortableDailyHours() { return comfortableDailyHours; }
     public void setComfortableDailyHours(int comfortableDailyHours) { this.comfortableDailyHours = comfortableDailyHours; }
 
+    
+    public String getSeverity() {
+        return severity;
+    }
+
+    public void setSeverity(String severity) {
+        this.severity = severity;
+    }
+    
 	// Compatibility getter for frontend userName
 	public String getUserName() {
 		String f = (firstname != null) ? firstname : "";
 		String l = (lastname != null) ? lastname : "";
 		return f + " " + l;
+	}
+	
+	public List<Map<String, String>> getPaymentHistory() {
+	    return paymentHistory;
+	}
+	public void setPaymentHistory(List<Map<String, String>> paymentHistory) {
+	    this.paymentHistory = paymentHistory;
 	}
 
 	@Override
