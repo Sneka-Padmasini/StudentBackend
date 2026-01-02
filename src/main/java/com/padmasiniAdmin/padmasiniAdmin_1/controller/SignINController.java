@@ -11,6 +11,10 @@ import java.time.Duration;
 import java.time.LocalTime;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.mongodb.core.MongoTemplate;
+import org.springframework.data.mongodb.core.query.Criteria;
+import org.springframework.data.mongodb.core.query.Query;
+import org.springframework.data.mongodb.core.query.Update;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -31,6 +35,8 @@ import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.servlet.http.HttpSession;
 
+import org.springframework.web.multipart.MultipartFile;
+
 @RestController
 @RequestMapping("/api")
 public class SignINController {
@@ -46,6 +52,9 @@ public class SignINController {
     
     @Autowired 
     private StudyTrackerService trackerService;
+    
+    @Autowired
+    private MongoTemplate mongoTemplate;
 
 
     // ================= ROOT ENDPOINT =================
@@ -54,7 +63,6 @@ public class SignINController {
         return "Padmasini Admin Backend is running! Server Time: " + new java.util.Date();
     }
 
-    // ================= LOGIN =================
  // ================= LOGIN =================
     @PostMapping("/signIn")
     public ResponseEntity<?> signIn(@RequestBody UserDetails user, HttpSession session, HttpServletResponse response) {
@@ -67,6 +75,7 @@ public class SignINController {
             map.put("status", "failed");
         } else {
             map.put("status", "pass");
+            map.put("loggedIn", true);
             
             // ✅ Add User ID
             map.put("userId", checkUser.getId());
@@ -161,6 +170,8 @@ public class SignINController {
             map.put("plan", checkUser.getPlan());
             map.put("startDate", checkUser.getStartDate());
             map.put("endDate", checkUser.getEndDate());
+            map.put("comfortableDailyHours", checkUser.getComfortableDailyHours());
+            map.put("severity", checkUser.getSeverity());
 
             // ---------- Save session info ----------
             session.setAttribute("user", userName.trim());
@@ -180,6 +191,8 @@ public class SignINController {
             session.setAttribute("endDate", checkUser.getEndDate());
             session.setAttribute("paymentId", checkUser.getPaymentId());
             session.setAttribute("payerId", checkUser.getPayerId());
+            session.setAttribute("comfortableDailyHours", checkUser.getComfortableDailyHours());
+            session.setAttribute("severity", checkUser.getSeverity());
 
             // ---------- Cookie ----------
             Cookie cookie = new Cookie("email", checkUser.getEmail());
@@ -253,43 +266,126 @@ public class SignINController {
         return ResponseEntity.ok(trackerService.calculateStudyPlan(hours));
     }
     
-    // ================= CHECK SESSION =================
+
+    
+ // ================= CHECK SESSION (FIXED) =================
     @GetMapping("/checkSession")
     public ResponseEntity<?> checkSession(HttpSession session, HttpServletResponse response) {
         Map<String, Object> map = new HashMap<>();
 
-        if (session.getAttribute("user") == null) {
-            session.invalidate();
+        // 1. Get User ID from Session
+        String userId = (String) session.getAttribute("userId");
 
+        if (userId == null) {
+            session.invalidate();
             Cookie cookie = new Cookie("email", null);
             cookie.setMaxAge(0);
             cookie.setPath("/");
             response.addCookie(cookie);
-
             map.put("status", "failed");
-        } else {
-            map.put("status", "pass");
-            map.put("userId", session.getAttribute("userId"));
-            map.put("_id", session.getAttribute("userId"));
-            map.put("userName", session.getAttribute("user"));
-            map.put("email", session.getAttribute("email"));
-            map.put("phoneNumber", session.getAttribute("phoneNumber"));
-            map.put("role", session.getAttribute("role"));
-            map.put("coursetype", session.getAttribute("coursetype"));
-            map.put("courseName", session.getAttribute("courseName"));
-            map.put("subjects", session.getAttribute("subjects"));
-            map.put("standards", session.getAttribute("standards"));
-            
-            map.put("plan", session.getAttribute("plan"));
-            map.put("startDate", session.getAttribute("startDate"));
-            map.put("endDate", session.getAttribute("endDate"));
-            map.put("paymentId", session.getAttribute("paymentId"));
-            map.put("payerId", session.getAttribute("payerId"));
+            return ResponseEntity.ok(map);
         }
+
+        // 2. User IS logged in. 
+        map.put("status", "pass");
+        map.put("loggedIn", true);
+
+        // 3. 🔥 FETCH FRESH DATA USING SERVICE (This connects to correct DB) 🔥
+        // We use the service method because it knows the correct DB name ("studentUsers")
+        UserModel freshUser = signInService.getUserById(userId);
+        
+        if (freshUser != null) {
+            // ✅ Send Fresh DB Values
+            map.put("comfortableDailyHours", freshUser.getComfortableDailyHours());
+            map.put("severity", freshUser.getSeverity());
+            
+            // Update session memory to match DB
+            session.setAttribute("comfortableDailyHours", freshUser.getComfortableDailyHours());
+            session.setAttribute("severity", freshUser.getSeverity());
+            
+            // Sync other fields
+            map.put("plan", freshUser.getPlan());
+            map.put("startDate", freshUser.getStartDate());
+            map.put("endDate", freshUser.getEndDate());
+        } else {
+            // Fallback to session if user not found in DB (Rare)
+            System.out.println("⚠️ Warning: Could not fetch fresh user data for session check.");
+            map.put("comfortableDailyHours", session.getAttribute("comfortableDailyHours"));
+            map.put("severity", session.getAttribute("severity"));
+        }
+
+        // 4. Fill remaining standard fields from Session
+        map.put("userId", session.getAttribute("userId"));
+        map.put("_id", session.getAttribute("userId"));
+        map.put("userName", session.getAttribute("user"));
+        map.put("email", session.getAttribute("email"));
+        map.put("phoneNumber", session.getAttribute("phoneNumber"));
+        map.put("role", session.getAttribute("role"));
+        map.put("coursetype", session.getAttribute("coursetype"));
+        map.put("courseName", session.getAttribute("courseName"));
+        map.put("subjects", session.getAttribute("subjects"));
+        map.put("standards", session.getAttribute("standards"));
+        map.put("paymentId", session.getAttribute("paymentId"));
+        map.put("payerId", session.getAttribute("payerId"));
 
         return ResponseEntity.ok(map);
     }
+    
+ // ================= UPDATE STUDY GOAL (FIXED) =================
 
+    @PutMapping("/update-study-goal")
+    public ResponseEntity<?> updateStudyGoal(@RequestBody Map<String, Object> request, HttpSession session) {
+        
+        String email = (String) request.get("email");
+        Integer hours = (Integer) request.get("hours");
+        String severity = (String) request.get("severity"); // ✅ 1. Get Severity
+
+        System.out.println("🔍 UPDATE GOAL: Requesting update for " + email + " -> " + hours + " hours, Severity: " + severity);
+
+        if (email == null || hours == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Email or Hours missing"));
+        }
+
+        try {
+            // ✅ 2. PASS SEVERITY TO SERVICE (Uses the new method name from Step 2)
+            boolean isUpdated = signInService.updateStudyGoals(email, hours, severity);
+
+            if (isUpdated) {
+                // ✅ 3. Update Session so frontend sees it immediately
+                session.setAttribute("comfortableDailyHours", hours);
+                session.setAttribute("severity", severity); 
+
+                // 4. Fetch User Details (For the email Name)
+                UserModel user = signInService.checkEmailExists(email);
+
+                // 5. Send Email
+                if (user != null) {
+                    try {
+                        Map<String, Object> planDetails = trackerService.calculateStudyPlan(hours);
+                        
+                        String emailSubject = "Your Personalized Study Plan is Ready! 🚀";
+                        String emailBody = "Hello " + user.getFirstname() + ",\n\n" +
+                                           "We have successfully updated your goal to " + hours + " hours/day and Severity to " + severity + ".\n" +
+                                           "Your new study schedule is now active on your dashboard.\n\n" +
+                                           "Happy Learning,\nPadmasini Team";
+
+                        emailService.sendSimpleMessage(user.getEmail(), emailSubject, emailBody);
+                    } catch (Exception e) {
+                        System.err.println("⚠️ Email failed (non-critical): " + e.getMessage());
+                    }
+                }
+
+                return ResponseEntity.ok(Map.of("message", "Goal saved successfully!"));
+            } else {
+                return ResponseEntity.status(404).body(Map.of("message", "User not found or update failed"));
+            }
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("message", "Server Error: " + e.getMessage()));
+        }
+    }
+    
     // ================= SEND OTP =================
     @PostMapping("/auth/send-otp")
     public ResponseEntity<?> sendOtp(@RequestBody Map<String, String> request, HttpSession session) {
@@ -442,6 +538,75 @@ public class SignINController {
             return ResponseEntity.ok(Map.of("message", "Password reset successful"));
         } else {
             return ResponseEntity.status(500).body(Map.of("message", "Failed to update password"));
+        }
+    }
+    
+ // ================= CONTACT US (Final Corrected Version) =================
+    @PostMapping("/send-email")
+    public ResponseEntity<?> sendContactEmail(
+            @RequestParam("name") String name,
+            @RequestParam("email") String email, // <--- Student's email
+            @RequestParam("phone") String phone,
+            @RequestParam("category") String category,
+            @RequestParam("enquiry") String enquiry,
+            @RequestParam(value = "file", required = false) MultipartFile file
+    ) {
+        try {
+            // 1. Format the email body
+            String subject = "New Support Enquiry: " + category;
+            String emailBody = "User Details:\n" +
+                               "Name: " + name + "\n" +
+                               "Email: " + email + "\n" +
+                               "Phone: " + phone + "\n" +
+                               "Category: " + category + "\n\n" +
+                               "Enquiry Message:\n" + enquiry;
+
+            
+            
+            emailService.sendContactMessageWithAttachment(
+                "learnforward@padmasini.com", // This is where the enquiry arrives (Support Inbox)
+                subject, 
+                emailBody, 
+                file, 
+                email // <--- Pass user email for Reply-To
+            );
+
+            return ResponseEntity.ok(Map.of("message", "Enquiry sent successfully"));
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            return ResponseEntity.status(500).body(Map.of("message", "Error sending email: " + e.getMessage()));
+        }
+    }
+    
+ // ================= GET COURSE METRICS (Dynamic Calculation) =================
+    @GetMapping("/course-metrics")
+    public ResponseEntity<?> getCourseMetrics() {
+        try {
+            // 1. Count total lessons (Units) in the database
+            // Note: Replace "units" with your actual collection name if different (e.g., "chapters", "lessons")
+            long totalLessons = mongoTemplate.getCollection("units").countDocuments();
+            
+            // Safety fallback if DB is empty
+            if (totalLessons == 0) totalLessons = 97; 
+
+            // 2. Apply the Logic: 1 Lesson = 5 Days
+            long totalDaysNeeded = totalLessons * 5;
+
+            // 3. Convert to Total Hours (Assuming a standard 4-hour study session per day)
+            long totalHoursNeeded = totalDaysNeeded * 4;
+
+            Map<String, Object> response = new HashMap<>();
+            response.put("totalHours", totalHoursNeeded);
+            response.put("totalLessons", totalLessons);
+            response.put("advisedDailyHours", 4); // We recommend 4 hours/day to meet the 5-day/lesson pace
+
+            return ResponseEntity.ok(response);
+
+        } catch (Exception e) {
+            e.printStackTrace();
+            // Fallback to static calculation if DB fails
+            return ResponseEntity.ok(Map.of("totalHours", 1940, "advisedDailyHours", 4)); 
         }
     }
 }
