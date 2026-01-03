@@ -89,6 +89,8 @@ public class UserController {
             
             user.setComfortableDailyHours(0);
             
+            user.setSeverity("Competent (70%)");
+            
             
             List<Map<String, String>> paymentHistory = new ArrayList<>();
             Map<String, String> initialTransaction = new HashMap<>();
