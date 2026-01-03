@@ -9,6 +9,7 @@ import java.util.Set;
 import java.time.LocalDateTime; 
 import java.time.Duration;
 import java.time.LocalTime;
+import java.time.LocalDate;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.mongodb.core.MongoTemplate;
@@ -74,6 +75,36 @@ public class SignINController {
         if (checkUser == null) {
             map.put("status", "failed");
         } else {
+        	
+        	try {
+                if (checkUser.getEndDate() != null && !checkUser.getEndDate().isEmpty()) {
+                    LocalDate expireDate = LocalDate.parse(checkUser.getEndDate());
+                    if (LocalDate.now().isAfter(expireDate)) {
+                        
+                        // 🔥 CHANGE: Send "expired" status BUT include user details for renewal
+                        map.put("status", "expired");
+                        map.put("message", "Your plan has expired. update you plan to continue");
+                        
+                        // Send minimal details needed for the Registration/Renewal page
+                        map.put("userName", checkUser.getFirstname() + " " + checkUser.getLastname());
+                        map.put("firstName", checkUser.getFirstname());
+                        map.put("lastName", checkUser.getLastname());
+                        map.put("email", checkUser.getEmail());
+                        map.put("phoneNumber", checkUser.getMobile());
+                        map.put("dob", checkUser.getDob());
+                        map.put("gender", checkUser.getGender());
+                        
+                        // Crucial for renewal logic
+                        map.put("plan", checkUser.getPlan());
+                        map.put("endDate", checkUser.getEndDate()); 
+                        
+                        return ResponseEntity.ok(map); // Stop here, but send data
+                    }
+                }
+            } catch (Exception e) {
+                System.out.println("⚠️ Date check skipped: " + e.getMessage());
+            }
+        	
             map.put("status", "pass");
             map.put("loggedIn", true);
             
