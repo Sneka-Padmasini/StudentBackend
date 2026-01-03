@@ -54,15 +54,11 @@ public class StudyTrackerService {
         return response;
     }
 
-    // =================================================================================
-    // 🚦 PRODUCTION VS TESTING SWITCH 🚦
-    // =================================================================================
-    
-    // 👉 FOR TESTING (Uncomment this line to send emails immediately when server starts)
+    // 👉 FOR TESTING 
 //    @EventListener(ApplicationReadyEvent.class)
     
-    // 👉 FOR PRODUCTION (Uncomment this line to run automatically at 11:59 PM every day)
-     @Scheduled(cron = "0 59 23 * * ?") 
+    // 👉 FOR PRODUCTION 
+    @Scheduled(cron = "0 59 23 * * ?", zone = "Asia/Kolkata")
     
     public void sendDailyReports() {
         System.out.println("🚀 STARTING DAILY REPORT GENERATION...");
